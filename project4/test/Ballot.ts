@@ -19,8 +19,8 @@ describe("Ballot", async () => {
   describe("when the contract is deployed", async () => {
     it("has the provided proposals", async () => {
       const {ballotContract } = await loadFixture(deployContract);
-      const proposals = await ballotContract.read.proporsals();
-      expect(proporsals).to.eq(PROPOSALS);
+      const proposals = await ballotContract.read.proposals();
+      expect(proposals).to.eq(PROPOSALS);
     });
 
     it("has zero votes for all proposals", async () => {
