@@ -5,6 +5,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { toHex } from "viem";
 import { abi, bytecode } from "../artifacts/contracts/Ballot.sol/Ballot.json";
+import { hexToString } from "viem";
 
 const providerApiKey = process.env.ALCHEMY_API_KEY || "";
 const deployerPrivateKey = process.env.PRIVATE_KEY || "";
@@ -44,10 +45,13 @@ const account = privateKeyToAccount(`0x${deployerPrivateKey}`);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   console.log("Ballot contract deployed to:", receipt.contractAddress);
 
-  console.log("Proposals: ");
+  if (!receipt.contractAddress) throw new Error("Contract address is undefined");
+    const contractAddress = receipt.contractAddress as `0x${string}`;
+
+   console.log("Proposals: ");
   for (let index = 0; index < proposals.length; index++) {
     const proposal = (await publicClient.readContract({
-      address: receipt.contractAddress,
+      address: contractAddress,
       abi,
       functionName: "proposals",
       args: [BigInt(index)],
