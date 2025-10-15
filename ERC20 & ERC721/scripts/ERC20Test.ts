@@ -6,6 +6,9 @@ async function main() {
   const [deployer, account1, account2] = await viem.getWalletClients();
   const tokenContract = await viem.deployContract("MyToken");
   console.log(`Contract deployed at ${tokenContract.address}`);
+  const totalSupply = await tokenContract.read.totalSupply();
+  console.log({ totalSupply });
+  tokenContract.write.mint;
 }
 
 main().catch((err) => {
