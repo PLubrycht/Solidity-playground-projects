@@ -8,7 +8,6 @@ async function main() {
   console.log(`Contract deployed at ${tokenContract.address}`);
   const totalSupply = await tokenContract.read.totalSupply();
   console.log({ totalSupply });
-  tokenContract.write.mint;
 }
 
 main().catch((err) => {
