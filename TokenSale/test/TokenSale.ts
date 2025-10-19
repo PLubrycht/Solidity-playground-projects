@@ -8,11 +8,13 @@ const PRICE = 5n;
 async function deployContract() {
   const publicClient = await viem.getPublicClient();
   const [deployer, otherAccount] = await viem.getWalletClients();
+  const paymentTokenContract = await viem.deployContract("MyToken");
+  const nftContract = await viem.deployContract("MyNFT");
   const tokenSaleContract = await viem.deployContract("TokenSale", [
     RATIO,
     PRICE,
-    deployer.account.address, // THIS IS WRONG
-    otherAccount.account.address,
+    paymentTokenContract.address,
+    nftContract.address,
   ]);
   return { publicClient, deployer, otherAccount, tokenSaleContract };
 }
