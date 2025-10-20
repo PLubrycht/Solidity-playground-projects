@@ -1,9 +1,12 @@
 import { expect } from "chai";
 import { viem } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-
+import { formatEther, parseEther } from "viem";
+const MINTER_ROLE =
+  "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6";
 const RATIO = 10n;
 const PRICE = 5n;
+const TEST_BUY_TOKENS = parseEther("1");
 
 async function deployContract() {
   const publicClient = await viem.getPublicClient();
@@ -16,7 +19,25 @@ async function deployContract() {
     paymentTokenContract.address,
     nftContract.address,
   ]);
-  return { publicClient, deployer, otherAccount, tokenSaleContract };
+
+  const grantMinterRolePaymentTokenContractTx =
+    await paymentTokenContract.write.grantRole([
+      MINTER_ROLE,
+      tokenSaleContract.address,
+    ]);
+
+  await publicClient.waitForTransactionReceipt({
+    hash: grantMinterRolePaymentTokenContractTx,
+  });
+
+  return {
+    publicClient,
+    deployer,
+    otherAccount,
+    tokenSaleContract,
+    paymentTokenContract,
+    nftContract,
+  };
 }
 
 describe("NFT Shop", async () => {
@@ -39,7 +60,8 @@ describe("NFT Shop", async () => {
         tokenContractAddress
       );
       const totalSupply = await tokenContract.read.totalSupply();
-      expect(totalSupply).to.gte(0);
+      expect(totalSupply).to.eq(0);
+      await expect(tokenContract.read.name()).not.to.be.rejected;
     });
     it("uses a valid ERC721 as NFT collection", async () => {
       throw new Error("Not implemented");
@@ -47,10 +69,51 @@ describe("NFT Shop", async () => {
   });
   describe("When a user buys an ERC20 from the Token contract", async () => {
     it("charges the correct amount of ETH", async () => {
-      throw new Error("Not implemented");
+      const {
+        publicClient,
+        tokenSaleContract,
+        otherAccount,
+        paymentTokenContract,
+      } = await loadFixture(deployContract);
+      const ethBalanceBeforeBuyTx = await publicClient.getBalance({
+        address: otherAccount.account.address,
+      });
+      const tx = await tokenSaleContract.write.buyTokens({
+        value: TEST_BUY_TOKENS,
+        account: otherAccount.account,
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: tx,
+      });
+      const ethBalanceAfterBuyTx = await publicClient.getBalance({
+        address: otherAccount.account.address,
+      });
+      const gasAmount = receipt.gasUsed;
+      const gasPrice = receipt.effectiveGasPrice;
+      const gasCost = gasAmount * gasPrice;
+      const diff = ethBalanceBeforeBuyTx - ethBalanceAfterBuyTx - gasCost;
+      expect(diff).to.eq(TEST_BUY_TOKENS);
     });
     it("gives the correct amount of tokens", async () => {
-      throw new Error("Not implemented");
+      const {
+        publicClient,
+        tokenSaleContract,
+        otherAccount,
+        paymentTokenContract,
+      } = await loadFixture(deployContract);
+      const tokenBalanceBeforeBuyTx = await paymentTokenContract.read.balanceOf(
+        [otherAccount.account.address]
+      );
+      const tx = await tokenSaleContract.write.buyTokens({
+        value: TEST_BUY_TOKENS,
+        account: otherAccount.account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+      const tokenBalanceAfterBuyTx = await paymentTokenContract.read.balanceOf([
+        otherAccount.account.address,
+      ]);
+      const diff = tokenBalanceAfterBuyTx - tokenBalanceBeforeBuyTx;
+      expect(diff).to.eq(TEST_BUY_TOKENS * RATIO);
     });
   });
   describe("When a user burns an ERC20 at the Shop contract", async () => {
@@ -58,7 +121,39 @@ describe("NFT Shop", async () => {
       throw new Error("Not implemented");
     });
     it("burns the correct amount of tokens", async () => {
-      throw new Error("Not implemented");
+      const {
+        publicClient,
+        tokenSaleContract,
+        otherAccount,
+        paymentTokenContract,
+      } = await loadFixture(deployContract);
+
+      const tx = await tokenSaleContract.write.buyTokens({
+        value: TEST_BUY_TOKENS,
+        account: otherAccount.account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+      const tokenBalanceAfterBuyTx = await paymentTokenContract.read.balanceOf([
+        otherAccount.account.address,
+      ]);
+      const approveTx = await paymentTokenContract.write.approve(
+        [tokenSaleContract.address, tokenBalanceAfterBuyTx],
+        {
+          account: otherAccount.account,
+        }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: approveTx });
+      const tx2 = await tokenSaleContract.write.burnTokens(
+        [tokenBalanceAfterBuyTx],
+        {
+          account: otherAccount.account,
+        }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: tx2 });
+      const tokenBalanceAfterBurnTx = await paymentTokenContract.read.balanceOf(
+        [otherAccount.account.address]
+      );
+      expect(tokenBalanceAfterBurnTx).to.eq(0n);
     });
   });
   describe("When a user buys an NFT from the Shop contract", async () => {
