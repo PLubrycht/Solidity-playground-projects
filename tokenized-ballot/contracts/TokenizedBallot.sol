@@ -23,8 +23,10 @@ contract TokenizedBallot {
     ) {
         tokenContract = IMyToken(_tokenContract);
         targetBlockNumber = _targetBlockNumber;
-        // TODO: Validate if targetBlockNumber is in the past
-        for (uint i = 0; i < _proposalNames.length; i++) {
+    require(
+        _targetBlockNumber < block.number,
+        "TokenizedBallot: target block must be in the past"
+    );        for (uint i = 0; i < _proposalNames.length; i++) {
             proposals.push(Proposal({name: _proposalNames[i], voteCount: 0}));
         }
     }
