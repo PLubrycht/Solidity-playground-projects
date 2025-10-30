@@ -1,6 +1,10 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 
+interface MintTokensDto {
+  address: string;
+}
+
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -46,7 +50,7 @@ export class AppController {
   }
 
   @Post('mint-tokens')
-  async mintTokens(@Body() body: any) {
+  async mintTokens(@Body() body: MintTokensDto) {
     return { result: await this.appService.mintTokens(body.address) };
   }
 }

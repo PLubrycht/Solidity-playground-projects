@@ -25,9 +25,6 @@ console.log('providerApiKey', providerApiKey.slice(0, 5), '...');
 
 @Injectable()
 export class AppService {
-  mintTokens(address: any) {
-    throw new Error('Method not implemented.');
-  }
   private readonly publicClient: PublicClient;
   private readonly walletClient: ReturnType<typeof createWalletClient>;
 
@@ -105,12 +102,18 @@ export class AppService {
     return hasRole as boolean;
   }
 
-  mintTokens(address: any) {
+  async mintTokens(address: string): Promise<{
+    success: boolean;
+    result: { message: string; address: string; hash: string };
+  }> {
+    await Promise.resolve();
     return {
       success: true,
-      message: 'Tokens minted successfully',
-      address: address,
-      hash: '0x-example-hash',
+      result: {
+        message: 'Tokens minted successfully',
+        address,
+        hash: '0x-example-hash',
+      },
     };
   }
 }
